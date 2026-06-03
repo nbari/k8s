@@ -82,6 +82,7 @@ The Talos cluster currently has the base platform online:
 - Vault HA Raft with AWS KMS auto-unseal
 - External Secrets Operator reading Vault over HTTPS
 - Vault PKI exposed to cert-manager through the `vault-internal` ClusterIssuer
+- external-dns for explicitly labeled public Cloudflare records
 
 Vault traffic is encrypted end to end:
 
@@ -92,6 +93,10 @@ client -> HTTPS vault.48.network:443 -> Envoy Gateway -> HTTPS vault-active.vaul
 Vault PKI is available for internal certificate automation. Kubernetes
 resources remain GitOps-managed, while Vault API configuration can later be
 managed with Terraform.
+
+external-dns is installed but intentionally conservative: it watches Gateway
+HTTPRoutes for `48.network` and only manages routes labeled
+`external-dns=public`.
 
 ## Architecture
 
@@ -115,6 +120,8 @@ flowchart LR
   vyos[VyOS 10.246.0.1] <--> cilium
   cert --> letsencrypt[Let's Encrypt DNS-01]
   cert --> vaultpki[Vault PKI]
+  envoy --> edns[external-dns]
+  edns --> cloudflare[Cloudflare DNS]
   eso --> vault
   vaultpki --> vault
   vault --> kms[AWS KMS auto-unseal]
