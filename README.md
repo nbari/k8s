@@ -13,6 +13,7 @@ Public, secret-free documentation for the `talos-48` Kubernetes platform.
 - LoadBalancer pool: `10.246.2.2-10.246.2.14`
 - Active Talos Gateway VIP: `10.246.2.3`
 - Public Vault endpoint: `https://vault.48.network`
+- Private observability endpoints: `https://grafana.48.network`, `https://logs.48.network`, `https://metrics.48.network`, `https://alertmanager.48.network`
 
 `10.246.2.2` remains assigned to the older RKE2 cluster during migration. The
 Talos cluster uses `10.246.2.3` to avoid both clusters advertising the same
@@ -83,6 +84,7 @@ The Talos cluster currently has the base platform online:
 - External Secrets Operator reading Vault over HTTPS
 - Vault PKI exposed to cert-manager through the `vault-internal` ClusterIssuer
 - external-dns for explicitly labeled public Cloudflare records
+- VictoriaMetrics and VictoriaLogs for metrics and logs
 
 Vault traffic is encrypted end to end:
 
@@ -98,6 +100,16 @@ external-dns is installed but intentionally conservative: it watches Gateway
 HTTPRoutes for `48.network` and only manages routes labeled
 `external-dns=public`.
 
+Observability is private-only through split DNS to `10.246.2.3`:
+
+- Grafana: `https://grafana.48.network`
+- VictoriaLogs: `https://logs.48.network`
+- VictoriaMetrics: `https://metrics.48.network`
+- Alertmanager: `https://alertmanager.48.network`
+
+The observability routes use Let's Encrypt DNS-01 certificates for browser
+trust, but they are not labeled for public DNS automation.
+
 ## Architecture
 
 ```mermaid
@@ -106,6 +118,10 @@ flowchart LR
   dns --> vip[Gateway VIP 10.246.2.3]
   vip --> envoy[Envoy Gateway]
   envoy --> vault[Vault HA Raft]
+  envoy --> grafana[Grafana]
+  envoy --> metrics[VictoriaMetrics]
+  envoy --> logs[VictoriaLogs]
+  envoy --> alerts[Alertmanager]
   envoy --> apps[Future apps]
 
   subgraph talos48[talos-48 Kubernetes]
@@ -114,6 +130,10 @@ flowchart LR
     cert[cert-manager]
     eso[External Secrets Operator]
     vault
+    grafana
+    metrics
+    logs
+    alerts
     ceph[Ceph CSI RBD]
   end
 
@@ -126,4 +146,8 @@ flowchart LR
   vaultpki --> vault
   vault --> kms[AWS KMS auto-unseal]
   vault --> ceph
+  metrics --> ceph
+  logs --> ceph
+  grafana --> ceph
+  alerts --> ceph
 ```
