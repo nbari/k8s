@@ -81,12 +81,17 @@ The Talos cluster currently has the base platform online:
 - Ceph CSI RBD storage
 - Vault HA Raft with AWS KMS auto-unseal
 - External Secrets Operator reading Vault over HTTPS
+- Vault PKI exposed to cert-manager through the `vault-internal` ClusterIssuer
 
 Vault traffic is encrypted end to end:
 
 ```text
 client -> HTTPS vault.48.network:443 -> Envoy Gateway -> HTTPS vault-active.vault.svc:8200 -> Vault
 ```
+
+Vault PKI is available for internal certificate automation. Kubernetes
+resources remain GitOps-managed, while Vault API configuration can later be
+managed with Terraform.
 
 ## Architecture
 
@@ -109,7 +114,9 @@ flowchart LR
 
   vyos[VyOS 10.246.0.1] <--> cilium
   cert --> letsencrypt[Let's Encrypt DNS-01]
+  cert --> vaultpki[Vault PKI]
   eso --> vault
+  vaultpki --> vault
   vault --> kms[AWS KMS auto-unseal]
   vault --> ceph
 ```
