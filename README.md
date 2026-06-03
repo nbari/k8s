@@ -12,6 +12,7 @@ Public, secret-free documentation for the `talos-48` Kubernetes platform.
 - Router/BGP peer: VyOS `10.246.0.1`
 - LoadBalancer pool: `10.246.2.2-10.246.2.14`
 - Active Talos Gateway VIP: `10.246.2.3`
+- Public Vault endpoint: `https://vault.48.network`
 
 `10.246.2.2` remains assigned to the older RKE2 cluster during migration. The
 Talos cluster uses `10.246.2.3` to avoid both clusters advertising the same
@@ -67,3 +68,48 @@ Envoy Gateway or the app consumes the Secret
 Use Vault PKI for internal `48.network` services. Use public ACME, such as
 Let's Encrypt with Cloudflare DNS-01, only for names that require public browser
 trust without installing the internal CA.
+
+## Current Platform
+
+The Talos cluster currently has the base platform online:
+
+- Flux GitOps
+- Cilium with eBPF kube-proxy replacement
+- Cilium BGP and LB IPAM
+- Envoy Gateway on `10.246.2.3`
+- cert-manager with Let's Encrypt DNS-01
+- Ceph CSI RBD storage
+- Vault HA Raft with AWS KMS auto-unseal
+- External Secrets Operator reading Vault over HTTPS
+
+Vault traffic is encrypted end to end:
+
+```text
+client -> HTTPS vault.48.network:443 -> Envoy Gateway -> HTTPS vault-active.vault.svc:8200 -> Vault
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+  user[LAN / Tailscale client] --> dns[Split DNS / Cloudflare DNS]
+  dns --> vip[Gateway VIP 10.246.2.3]
+  vip --> envoy[Envoy Gateway]
+  envoy --> vault[Vault HA Raft]
+  envoy --> apps[Future apps]
+
+  subgraph talos48[talos-48 Kubernetes]
+    cilium[Cilium eBPF + BGP]
+    envoy
+    cert[cert-manager]
+    eso[External Secrets Operator]
+    vault
+    ceph[Ceph CSI RBD]
+  end
+
+  vyos[VyOS 10.246.0.1] <--> cilium
+  cert --> letsencrypt[Let's Encrypt DNS-01]
+  eso --> vault
+  vault --> kms[AWS KMS auto-unseal]
+  vault --> ceph
+```
