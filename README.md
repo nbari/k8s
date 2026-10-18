@@ -49,6 +49,7 @@ BGP route.
 - Cilium eBPF kube-proxy replacement with no flannel and no kube-proxy pods.
 - Cilium BGP peering with VyOS for Kubernetes LoadBalancer/Gateway VIPs.
 - Hubble network observability UI with relay for live traffic flow inspection.
+- Tetragon eBPF runtime security observability.
 - Envoy Gateway as the private ingress layer for platform services.
 - cert-manager for certificate lifecycle automation.
 - Let's Encrypt DNS-01 for browser-trusted private routes.
@@ -110,6 +111,7 @@ The Talos cluster currently has the full platform online:
 - Cilium with eBPF kube-proxy replacement
 - Cilium BGP and LB IPAM
 - Hubble relay and UI at `https://hubble.48.network`
+- Tetragon eBPF runtime security observability
 - Envoy Gateway on `10.246.2.3`
 - cert-manager with Let's Encrypt DNS-01
 - Ceph CSI RBD storage
@@ -194,7 +196,7 @@ flowchart LR
   envoy --> apps[Future apps]
 
   subgraph talos48[talos-48 Kubernetes]
-    cilium[Cilium eBPF + BGP + Hubble]
+    cilium[Cilium eBPF + BGP + Hubble + Tetragon]
     envoy
     cert[cert-manager]
     eso[External Secrets Operator]
